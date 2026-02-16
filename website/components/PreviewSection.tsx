@@ -7,7 +7,7 @@ export function PreviewSection() {
         <div className="md:order-1 md:pr-8">
           <Reveal>
             <h2 className="font-display text-[clamp(26px,3.5vw,34px)] font-semibold leading-tight tracking-tight mb-3">
-              Click. Read. Quiz.
+              See it in action
             </h2>
             <p className="text-[15px] text-text-dim leading-[1.65]">
               Each word comes with definitions, phonetic spelling, audio, and a quiz. Save favorites to build your own vocabulary list.

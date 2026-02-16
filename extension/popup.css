@@ -46,7 +46,15 @@ body {
   font-family: 'Fraunces', Georgia, serif; font-size: 14px; font-weight: 600; color: white;
 }
 .popup-logo-name { font-weight: 700; font-size: 13px; }
+.popup-header-actions { display: flex; align-items: center; gap: 8px; }
 .popup-date { font-size: 11px; color: var(--popup-muted); }
+.btn-settings {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 6px;
+  color: var(--popup-muted); cursor: pointer;
+}
+.btn-settings:hover { background: var(--popup-surface); color: var(--popup-accent); }
 
 .popup-tabs {
   display: flex;
@@ -95,8 +103,8 @@ body {
 
 .phonetic { font-size: 12px; color: var(--popup-muted); font-style: italic; margin-bottom: 8px; }
 .word-actions { display: flex; gap: 8px; margin-bottom: 12px; }
-.btn-copy, .btn-random { padding: 4px 10px; font-size: 11px; background: var(--popup-surface); color: var(--popup-accent); border: 1px solid rgba(30,95,116,0.2); border-radius: 6px; cursor: pointer; font-family: inherit; }
-.btn-copy:hover, .btn-random:hover { background: rgba(30,95,116,0.08); }
+.btn-copy, .btn-random, .btn-share { padding: 4px 10px; font-size: 11px; background: var(--popup-surface); color: var(--popup-accent); border: 1px solid rgba(30,95,116,0.2); border-radius: 6px; cursor: pointer; font-family: inherit; }
+.btn-copy:hover, .btn-random:hover, .btn-share:hover { background: rgba(30,95,116,0.08); }
 .synonyms-row { margin-bottom: 12px; font-size: 11px; color: var(--popup-dim); }
 .synonyms-row .syn-ant { display: block; margin-bottom: 4px; }
 .definitions { margin-bottom: 12px; }
@@ -153,6 +161,8 @@ body {
   font-weight: 500;
 }
 .btn-export:hover { background: var(--popup-accent-dim); }
+.btn-anki { display: none; padding: 6px 12px; margin-bottom: 10px; margin-left: 8px; font-size: 12px; background: var(--popup-surface); color: var(--popup-accent); border: 1px solid rgba(30,95,116,0.2); border-radius: 6px; cursor: pointer; font-family: inherit; }
+.btn-anki:hover { background: rgba(30,95,116,0.08); }
 .btn-calendar { display: none; padding: 6px 12px; margin-bottom: 10px; margin-left: 8px; font-size: 12px; background: var(--popup-surface); color: var(--popup-accent); border: 1px solid rgba(30,95,116,0.2); border-radius: 6px; cursor: pointer; font-family: inherit; }
 .btn-calendar:hover { background: rgba(30,95,116,0.08); }
 .stats-row { display: flex; gap: 12px; margin-bottom: 10px; font-size: 11px; color: var(--popup-muted); }
@@ -266,3 +276,44 @@ body.theme-dark {
   --popup-border: rgba(255,255,255,0.06);
 }
 body.theme-dark .popup-logo-icon { background: linear-gradient(135deg, #F59E0B, #D97706); }
+
+/* Flashcards */
+.flashcard-hint { font-size: 11px; color: var(--popup-muted); margin-bottom: 10px; }
+.flashcard-container { perspective: 800px; margin-bottom: 12px; }
+.flashcard {
+  width: 100%; min-height: 120px; position: relative;
+  transform-style: preserve-3d; cursor: pointer;
+}
+.flashcard.flipped { transform: rotateY(180deg); }
+.flashcard-front, .flashcard-back {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: var(--popup-card); border: 1px solid var(--popup-border); border-radius: 10px;
+  font-family: 'Fraunces', Georgia, serif; font-size: 20px; font-weight: 600; color: var(--popup-accent);
+  text-align: center;
+}
+.flashcard-back {
+  transform: rotateY(180deg);
+  font-family: 'Source Serif 4', Georgia, serif; font-size: 13px; font-weight: 400; color: var(--popup-text);
+}
+.flashcard-nav { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.btn-flashcard-prev, .btn-flashcard-next {
+  padding: 6px 12px; font-size: 11px; background: var(--popup-surface); color: var(--popup-accent);
+  border: 1px solid rgba(30,95,116,0.2); border-radius: 6px; cursor: pointer; font-family: inherit;
+}
+.flashcard-index { font-size: 11px; color: var(--popup-muted); }
+
+/* Shortcuts */
+.shortcuts-list { list-style: none; }
+.shortcuts-list li { padding: 8px 0; font-size: 12px; }
+.shortcuts-list kbd {
+  display: inline-block; padding: 2px 6px; font-size: 11px;
+  background: var(--popup-surface); border: 1px solid var(--popup-border); border-radius: 4px;
+}
+
+/* Font sizes */
+body.font-small { font-size: 12px; }
+body.font-small .word-title { font-size: 18px; }
+body.font-large { font-size: 14px; }
+body.font-large .word-title { font-size: 26px; }
+.popup-tab-icon { padding: 6px 8px; font-size: 14px; }

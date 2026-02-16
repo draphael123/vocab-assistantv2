@@ -12,6 +12,12 @@ export function Footer() {
             Vocab Extender
           </span>
         </Link>
+        <div className="flex gap-6">
+          <a href="#features" className="text-xs text-text-muted hover:text-accent no-underline">Features</a>
+          <a href="#faq" className="text-xs text-text-muted hover:text-accent no-underline">FAQ</a>
+          <a href="#changelog" className="text-xs text-text-muted hover:text-accent no-underline">Changelog</a>
+          <a href="#contact" className="text-xs text-text-muted hover:text-accent no-underline">Contact</a>
+        </div>
         <span className="text-xs text-text-muted">
           &copy; 2026 Vocab Extender. All rights reserved.
         </span>

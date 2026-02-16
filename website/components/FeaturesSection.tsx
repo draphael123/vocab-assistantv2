@@ -63,9 +63,49 @@ const FEATURES = [
     ),
   },
   {
-    title: "Bookmarks",
+    title: "Spaced repetition",
     description:
-      "Save your favorite words to a searchable collection. Build your own personal vocabulary library over time.",
+      "Review saved words with built-in quiz and flashcards. Build long-term retention through active recall.",
+    icon: (
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </svg>
+    ),
+  },
+  {
+    title: "Offline-ready",
+    description:
+      "Word list and cached definitions work without internet. Pronunciation and API features require a connection.",
+    icon: (
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    ),
+  },
+  {
+    title: "Bookmarks & export",
+    description:
+      "Save words to a searchable collection. Export to text or Anki for use in other study tools.",
     icon: (
       <svg
         width="22"
@@ -88,7 +128,7 @@ export function FeaturesSection() {
     <section id="features" className="py-16 px-6 bg-raised/50">
       <div className="max-w-[900px] mx-auto">
         <h2 className="font-display text-[clamp(28px,3.5vw,36px)] font-semibold tracking-tight text-text-primary mb-10">
-          Daily word, pronunciation, quiz, bookmarks.
+          Daily word, flashcards, quiz, Anki export, offline-ready.
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
           {FEATURES.map((f) => (

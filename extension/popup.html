@@ -16,14 +16,21 @@
         <span class="popup-logo-icon">V</span>
         <span class="popup-logo-name">Vocab Extender</span>
       </div>
-      <span class="popup-date" id="dateLabel">—</span>
+      <div class="popup-header-actions">
+        <span class="popup-date" id="dateLabel">—</span>
+        <button type="button" class="btn-settings" id="btnSettings" title="Settings" aria-label="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </button>
+      </div>
     </header>
     <div class="popup-tabs">
       <button type="button" class="popup-tab active" data-tab="word">Today</button>
+      <button type="button" class="popup-tab" data-tab="flashcards">Cards</button>
       <button type="button" class="popup-tab" data-tab="quiz">Quiz</button>
       <button type="button" class="popup-tab" data-tab="saved">Saved</button>
       <button type="button" class="popup-tab" data-tab="past">Past</button>
       <button type="button" class="popup-tab" data-tab="search">Search</button>
+      <button type="button" class="popup-tab popup-tab-icon" data-tab="shortcuts" title="Keyboard shortcuts">⌨</button>
     </div>
     <main class="popup-body">
       <div id="panel-word" class="panel active">
@@ -39,6 +46,7 @@
         <p class="phonetic" id="phonetic">—</p>
         <div class="word-actions">
           <button type="button" class="btn-copy" id="btnCopy" title="Copy word & definition">Copy</button>
+          <button type="button" class="btn-share" id="btnShare" title="Share word">Share</button>
           <button type="button" class="btn-random" id="btnRandom" title="Random word">Shuffle</button>
         </div>
         <div class="definitions" id="definitions"></div>
@@ -58,6 +66,7 @@
         <div class="stats-row" id="statsRow"></div>
         <input type="search" class="search-saved" id="searchSaved" placeholder="Search saved words…" />
         <button type="button" class="btn-export" id="exportSaved">Export saved words</button>
+        <button type="button" class="btn-anki" id="exportAnki">Export for Anki</button>
         <button type="button" class="btn-calendar" id="btnCalendar">Add to calendar</button>
         <ul class="saved-list" id="savedList"></ul>
       </div>
@@ -68,6 +77,27 @@
       <div id="panel-search" class="panel">
         <input type="search" class="search-all" id="searchAll" placeholder="Search all words…" />
         <ul class="search-results" id="searchResults"></ul>
+      </div>
+      <div id="panel-flashcards" class="panel">
+        <p class="flashcard-hint">Tap to flip. Swipe or use arrows for next.</p>
+        <div class="flashcard-container" id="flashcardContainer">
+          <div class="flashcard" id="flashcard">
+            <div class="flashcard-front" id="flashcardFront"></div>
+            <div class="flashcard-back" id="flashcardBack"></div>
+          </div>
+        </div>
+        <div class="flashcard-nav">
+          <button type="button" class="btn-flashcard-prev" id="btnFlashcardPrev">← Prev</button>
+          <span class="flashcard-index" id="flashcardIndex">1 / 1</span>
+          <button type="button" class="btn-flashcard-next" id="btnFlashcardNext">Next →</button>
+        </div>
+      </div>
+      <div id="panel-shortcuts" class="panel">
+        <p class="panel-hint">Keyboard shortcuts</p>
+        <ul class="shortcuts-list">
+          <li><kbd>1</kbd>–<kbd>4</kbd> Select quiz answer</li>
+          <li>Tap flashcard to flip</li>
+        </ul>
       </div>
     </main>
   </div>

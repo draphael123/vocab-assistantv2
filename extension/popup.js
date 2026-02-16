@@ -13,6 +13,7 @@
 
 const API_BASE = "https://api.dictionaryapi.dev/api/v2/entries/en";
 let wordsList = [];
+let currentWordList = "full";
 let dailyWord = null;
 let dailyWordData = null;
 
@@ -43,8 +44,10 @@ async function loadWordsList() {
   try {
     const stored = await withTimeout(chrome.storage.sync.get("wordList"), 3000, {});
     wordList = stored?.wordList || "full";
+    currentWordList = wordList;
   } catch {
     wordList = "full";
+    currentWordList = "full";
   }
   const file = wordList === "sat" ? "words-sat.json" : "words.json";
   try {
@@ -141,7 +144,7 @@ function renderWordPanel(apiEntry) {
   const meanings = apiEntry.meanings || [];
 
   wordTitle.textContent = word;
-  wordTier.textContent = "advanced";
+  wordTier.textContent = currentWordList === "sat" ? "SAT" : currentWordList === "gre" ? "GRE" : "advanced";
   phonetic.textContent = phoneticText;
 
   let defHtml = "";
@@ -162,6 +165,9 @@ function renderWordPanel(apiEntry) {
       const a = new Audio(btn.dataset.src);
       a.play();
     });
+  });
+  chrome.storage.sync.get("autoPlay", ({ autoPlay = "off" }) => {
+    if (autoPlay === "on" && audioSrc) new Audio(audioSrc).play();
   });
 
   let exHtml = "";
@@ -217,21 +223,46 @@ function updateBookmarkButton() {
 }
 
 // ── Tabs ──
+function switchToTab(name) {
+  document.querySelectorAll(".popup-tab").forEach((t) => t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+  const tab = document.querySelector(`.popup-tab[data-tab="${name}"]`);
+  const panel = document.getElementById(`panel-${name}`);
+  if (tab) tab.classList.add("active");
+  if (panel) panel.classList.add("active");
+  if (name === "quiz") initQuiz();
+  if (name === "saved") renderSavedList();
+  if (name === "past") renderPastList();
+  if (name === "search") initSearch();
+  if (name === "flashcards") initFlashcards();
+  chrome.storage.local.set({ lastTab: name });
+}
+
 function initTabs() {
   document.querySelectorAll(".popup-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const name = tab.dataset.tab;
-      document.querySelectorAll(".popup-tab").forEach((t) => t.classList.remove("active"));
-      document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
-      tab.classList.add("active");
-      const panel = document.getElementById(`panel-${name}`);
-      if (panel) panel.classList.add("active");
-      if (name === "quiz") initQuiz();
-      if (name === "saved") renderSavedList();
-      if (name === "past") renderPastList();
-      if (name === "search") initSearch();
-    });
+    tab.addEventListener("click", () => switchToTab(tab.dataset.tab));
   });
+}
+
+// ── Share ──
+async function shareWord() {
+  if (!dailyWordData || !dailyWord) return;
+  const word = dailyWordData.word || dailyWord;
+  const defs = [];
+  (dailyWordData.meanings || []).slice(0, 2).forEach((m) => {
+    const d = (m.definitions || [])[0];
+    if (d?.definition) defs.push(d.definition);
+  });
+  const text = `${word}\n${defs.join("\n")}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: word, text });
+    } catch {
+      navigator.clipboard.writeText(text);
+    }
+  } else {
+    navigator.clipboard.writeText(text);
+  }
 }
 
 // ── Copy word & definition ──
@@ -333,10 +364,11 @@ function initSearch() {
 
 // ── Stats ──
 async function renderStats() {
-  const { quizStreak = 0, totalCorrect = 0, savedWords = [] } = await chrome.storage.local.get(["quizStreak", "totalCorrect", "savedWords"]);
+  const { quizStreak = 0, totalCorrect = 0, savedWords = [], wordHistory = [] } = await chrome.storage.local.get(["quizStreak", "totalCorrect", "savedWords", "wordHistory"]);
+  const uniqueWords = new Set(wordHistory.map((e) => e.word)).size;
   const el = document.getElementById("statsRow");
   if (!el) return;
-  el.innerHTML = `<span class="stat">Streak: ${quizStreak}</span><span class="stat">Saved: ${savedWords.length}</span><span class="stat">Correct: ${totalCorrect}</span>`;
+  el.innerHTML = `<span class="stat">Streak: ${quizStreak}</span><span class="stat">Saved: ${savedWords.length}</span><span class="stat">Correct: ${totalCorrect}</span><span class="stat">Words: ${uniqueWords}</span>`;
 }
 
 // ── Add to calendar (.ics) ──
@@ -484,6 +516,51 @@ async function quizSavedWord(savedWords) {
   initQuiz();
 }
 
+// ── Flashcards ──
+let flashcardIndex = 0;
+let flashcardWords = [];
+let flashcardData = [];
+
+async function initFlashcards() {
+  await loadWordsList();
+  const { wordHistory = [] } = await chrome.storage.local.get("wordHistory");
+  const { savedWords = [] } = await chrome.storage.local.get("savedWords");
+  const combined = [...new Set([...wordHistory.map((e) => e.word), ...savedWords])];
+  if (!combined.length && dailyWord) combined.push(dailyWord);
+  if (!combined.length) {
+    document.getElementById("flashcardFront").textContent = "No words yet";
+    document.getElementById("flashcardBack").textContent = "Add words via Today or Saved.";
+    document.getElementById("flashcardIndex").textContent = "0 / 0";
+    return;
+  }
+  flashcardWords = combined;
+  flashcardData = [];
+  for (const w of flashcardWords) {
+    const entry = wordHistory.find((e) => e.word === w)?.data;
+    const def = entry?.meanings?.[0]?.definitions?.[0]?.definition || (await getDefinitionForWord(w)) || "—";
+    flashcardData.push({ word: w, def });
+  }
+  flashcardIndex = 0;
+  renderFlashcard();
+  document.getElementById("btnFlashcardPrev").onclick = () => { flashcardIndex = Math.max(0, flashcardIndex - 1); renderFlashcard(); };
+  document.getElementById("btnFlashcardNext").onclick = () => { flashcardIndex = Math.min(flashcardData.length - 1, flashcardIndex + 1); renderFlashcard(); };
+  const card = document.getElementById("flashcard");
+  if (card) card.onclick = () => card.classList.toggle("flipped");
+}
+
+function renderFlashcard() {
+  const front = document.getElementById("flashcardFront");
+  const back = document.getElementById("flashcardBack");
+  const idxEl = document.getElementById("flashcardIndex");
+  const card = document.getElementById("flashcard");
+  if (!flashcardData.length) return;
+  const d = flashcardData[flashcardIndex];
+  front.textContent = d.word;
+  back.textContent = d.def;
+  idxEl.textContent = `${flashcardIndex + 1} / ${flashcardData.length}`;
+  if (card) card.classList.remove("flipped");
+}
+
 function quizKeyHandler(e) {
   if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
   const panel = document.getElementById("panel-quiz");
@@ -532,6 +609,8 @@ async function renderSavedList() {
   });
 
   if (exportBtn) exportBtn.style.display = filtered.length ? "inline-flex" : "none";
+  const ankiBtn = document.getElementById("exportAnki");
+  if (ankiBtn) { ankiBtn.style.display = filtered.length ? "inline-flex" : "none"; ankiBtn.onclick = exportAnki; }
   const calendarBtn = document.getElementById("btnCalendar");
   if (calendarBtn) calendarBtn.style.display = filtered.length ? "inline-flex" : "none";
   renderStats();
@@ -567,6 +646,24 @@ async function showSavedWordDefinition(word) {
   }
   closeBtn.onclick = () => modal.classList.remove("active");
   modal.onclick = (e) => { if (e.target === modal) modal.classList.remove("active"); };
+}
+
+// ── Anki export (tab-separated for import) ──
+async function exportAnki() {
+  const { savedWords = [] } = await chrome.storage.local.get("savedWords");
+  const cache = (await chrome.storage.local.get("definitionCache")).definitionCache || {};
+  const lines = ["Front\tBack"];
+  for (const w of savedWords) {
+    const def = cache[w] || "—";
+    lines.push(`${w}\t${def.replace(/\t/g, " ").replace(/\n/g, " ")}`);
+  }
+  const blob = new Blob([lines.join("\n")], { type: "text/tab-separated-values" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "vocab-extender-anki.txt";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function exportSavedWords() {
@@ -640,6 +737,7 @@ async function init() {
   renderWordPanel(dailyWordData);
   updateBookmarkButton();
   document.getElementById("btnBookmark").addEventListener("click", () => toggleSaved(dailyWord));
+  document.getElementById("btnSettings")?.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
   try {
     const fallbackRes = await fetch(chrome.runtime.getURL("example-fallbacks.json"));
@@ -651,9 +749,17 @@ async function init() {
   document.getElementById("searchSaved")?.addEventListener("input", renderSavedList);
   document.getElementById("exportSaved")?.addEventListener("click", exportSavedWords);
   document.getElementById("btnCopy")?.addEventListener("click", copyWordAndDefinition);
+  document.getElementById("btnShare")?.addEventListener("click", shareWord);
   document.getElementById("btnRandom")?.addEventListener("click", loadRandomWord);
   document.getElementById("btnCalendar")?.addEventListener("click", addToCalendar);
+  chrome.storage.sync.get("fontSize", ({ fontSize = "medium" }) => {
+    document.body.classList.remove("font-small", "font-medium", "font-large");
+    document.body.classList.add(`font-${fontSize}`);
+  });
   initTabs();
+  const { defaultTab = "word" } = await chrome.storage.sync.get("defaultTab");
+  const targetTab = defaultTab === "last" ? ((await chrome.storage.local.get("lastTab")).lastTab || "word") : defaultTab;
+  if (targetTab !== "word") switchToTab(targetTab);
   await loadQuizStreak();
 
   chrome.storage.sync.get("theme", ({ theme = "light" }) => {
