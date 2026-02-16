@@ -38,6 +38,13 @@ npm run build
 npm start
 ```
 
+### Deploy on Vercel
+
+1. Import the repo in [Vercel](https://vercel.com) (e.g. from GitHub).
+2. **Set Root Directory to `website`** (required — the Next.js app lives there).
+3. Leave Build Command as `npm run build` and leave Output Directory default.
+4. Deploy. The landing page will be served at your Vercel URL.
+
 ## Extension (Chrome)
 
 - **Manifest V3**, popup 380×520px
