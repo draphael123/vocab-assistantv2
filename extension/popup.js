@@ -26,8 +26,9 @@ function getDailyWordKey() {
 }
 
 async function loadWordsList() {
-  if (wordsList.length) return wordsList;
-  const res = await fetch(chrome.runtime.getURL("words.json"));
+  const { wordList = "full" } = await chrome.storage.sync.get("wordList");
+  const file = wordList === "sat" ? "words-sat.json" : "words.json";
+  const res = await fetch(chrome.runtime.getURL(file));
   const list = await res.json();
   wordsList = Array.isArray(list) ? list : [];
   return wordsList;
@@ -96,6 +97,8 @@ function renderWordPanel(apiEntry) {
     phonetic.textContent = "Check your connection and try again.";
     definitions.innerHTML = "";
     audioRow.innerHTML = "";
+    const synonymsRow = document.getElementById("synonymsRow");
+    if (synonymsRow) synonymsRow.innerHTML = "";
     examples.innerHTML = "";
     return;
   }
@@ -134,7 +137,27 @@ function renderWordPanel(apiEntry) {
       if (d.example) exHtml += `<div class="example">${escapeHtml(d.example)}</div>`;
     });
   });
+  if (!exHtml && window.exampleFallbacks?.[word?.toLowerCase()]) {
+    exHtml = `<div class="example">${escapeHtml(window.exampleFallbacks[word.toLowerCase()])}</div>`;
+  }
   examples.innerHTML = exHtml ? `<div class="examples-label">Examples</div>${exHtml}` : "";
+
+  const synonymsRow = document.getElementById("synonymsRow");
+  if (synonymsRow) {
+    const syns = [];
+    const ants = [];
+    meanings.forEach((m) => {
+      (m.definitions || []).forEach((d) => {
+        (d.synonyms || []).slice(0, 3).forEach((s) => syns.push(s));
+        (d.antonyms || []).slice(0, 2).forEach((a) => ants.push(a));
+      });
+    });
+    const uniq = (arr) => [...new Set(arr)];
+    let synAntHtml = "";
+    if (uniq(syns).length) synAntHtml += `<span class="syn-ant"><strong>Synonyms:</strong> ${uniq(syns).slice(0, 5).join(", ")}</span>`;
+    if (uniq(ants).length) synAntHtml += `<span class="syn-ant"><strong>Antonyms:</strong> ${uniq(ants).slice(0, 3).join(", ")}</span>`;
+    synonymsRow.innerHTML = synAntHtml || "";
+  }
 }
 
 // ── Bookmark ──
@@ -172,8 +195,154 @@ function initTabs() {
       if (panel) panel.classList.add("active");
       if (name === "quiz") initQuiz();
       if (name === "saved") renderSavedList();
+      if (name === "past") renderPastList();
+      if (name === "search") initSearch();
     });
   });
+}
+
+// ── Copy word & definition ──
+function copyWordAndDefinition() {
+  if (!dailyWordData || !dailyWord) return;
+  const word = dailyWordData.word || dailyWord;
+  const phonetic = dailyWordData.phonetic || dailyWordData.phonetics?.find((p) => p.text)?.text || "";
+  const defs = [];
+  (dailyWordData.meanings || []).slice(0, 3).forEach((m) => {
+    (m.definitions || []).slice(0, 2).forEach((d) => defs.push(`• ${d.definition}`));
+  });
+  const text = `${word} ${phonetic ? `(${phonetic})` : ""}\n\n${defs.join("\n")}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("btnCopy");
+    if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 1500); }
+  });
+}
+
+// ── Random word ──
+async function loadRandomWord() {
+  await loadWordsList();
+  if (!wordsList.length) return;
+  const idx = Math.floor(Math.random() * wordsList.length);
+  const w = wordsList[idx];
+  dailyWord = w;
+  dailyWordData = await fetchWordFromAPI(w);
+  renderWordPanel(dailyWordData);
+  updateBookmarkButton();
+}
+
+// ── Word history & Past tab ──
+async function addToWordHistory(word, data) {
+  const { wordHistory = [] } = await chrome.storage.local.get("wordHistory");
+  const dateStr = new Date().toDateString();
+  const entry = { date: dateStr, word, data };
+  const filtered = wordHistory.filter((e) => !(e.date === dateStr && e.word === word));
+  const next = [entry, ...filtered].slice(0, 30);
+  await chrome.storage.local.set({ wordHistory: next });
+}
+
+async function renderPastList() {
+  const { wordHistory = [] } = await chrome.storage.local.get("wordHistory");
+  const listEl = document.getElementById("pastList");
+  listEl.innerHTML = wordHistory
+    .map(
+      (e) =>
+        `<li data-word="${escapeAttr(e.word)}"><span class="past-date">${escapeHtml(e.date)}</span><span class="past-word">${escapeHtml(e.word)}</span><button type="button" class="btn-view-past" data-word="${escapeAttr(e.word)}">View</button></li>`
+    )
+    .join("");
+  listEl.querySelectorAll(".btn-view-past").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const w = btn.dataset.word;
+      const entry = wordHistory.find((e) => e.word === w);
+      if (entry?.data) {
+        dailyWord = w;
+        dailyWordData = entry.data;
+        document.querySelector('[data-tab="word"]')?.click();
+        renderWordPanel(dailyWordData);
+      } else {
+        showSavedWordDefinition(w);
+      }
+    });
+  });
+}
+
+// ── Search all words ──
+function initSearch() {
+  const input = document.getElementById("searchAll");
+  const results = document.getElementById("searchResults");
+  if (!input || !results) return;
+  const doSearch = async () => {
+    const q = (input.value || "").toLowerCase().trim();
+    await loadWordsList();
+    if (!q) {
+      results.innerHTML = "<p class='search-hint'>Type to search words.</p>";
+      return;
+    }
+    const matches = wordsList.filter((w) => w.toLowerCase().includes(q)).slice(0, 30);
+    results.innerHTML = matches
+      .map(
+        (w) =>
+          `<li data-word="${escapeAttr(w)}"><span>${escapeHtml(w)}</span><button type="button" class="btn-view-search" data-word="${escapeAttr(w)}">View</button></li>`
+      )
+      .join("");
+    results.querySelectorAll(".btn-view-search").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const w = btn.dataset.word;
+        const apiEntry = await fetchWordFromAPI(w);
+        dailyWord = w;
+        dailyWordData = apiEntry;
+        document.querySelector('[data-tab="word"]')?.click();
+        renderWordPanel(dailyWordData);
+      });
+    });
+  };
+  input.oninput = doSearch;
+  doSearch();
+}
+
+// ── Stats ──
+async function renderStats() {
+  const { quizStreak = 0, totalCorrect = 0, savedWords = [] } = await chrome.storage.local.get(["quizStreak", "totalCorrect", "savedWords"]);
+  const el = document.getElementById("statsRow");
+  if (!el) return;
+  el.innerHTML = `<span class="stat">Streak: ${quizStreak}</span><span class="stat">Saved: ${savedWords.length}</span><span class="stat">Correct: ${totalCorrect}</span>`;
+}
+
+// ── Add to calendar (.ics) ──
+function addToCalendar() {
+  chrome.storage.local.get("savedWords", ({ savedWords = [] }) => {
+    const start = new Date();
+    start.setDate(start.getDate() + 1);
+    start.setHours(10, 0, 0, 0);
+    const end = new Date(start);
+    end.setMinutes(30, 0, 0);
+    const fmt = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    const desc = `Review ${savedWords.length} saved words: ${savedWords.slice(0, 10).join(", ")}${savedWords.length > 10 ? "…" : ""}`;
+    const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+DTSTART:${fmt(start)}
+DTEND:${fmt(end)}
+SUMMARY:Review Vocab Extender saved words
+DESCRIPTION:${desc.replace(/\n/g, "\\n")}
+END:VEVENT
+END:VCALENDAR`;
+    const blob = new Blob([ics], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "vocab-extender-review.ics";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+// ── Streak freeze ──
+async function canUseStreakFreeze() {
+  const { freezeUsedWeek = 0 } = await chrome.storage.local.get("freezeUsedWeek");
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const weekKey = weekStart.toDateString();
+  return freezeUsedWeek !== weekKey;
 }
 
 // ── Quiz (real distractors, keyboard shortcuts) ──
@@ -193,6 +362,16 @@ async function initQuiz() {
   const optionsEl = document.getElementById("quizOptions");
   const feedbackEl = document.getElementById("quizFeedback");
   const streakEl = document.getElementById("quizStreak");
+
+  const savedLink = document.getElementById("quizSavedLink");
+  const { savedWords = [] } = await chrome.storage.local.get("savedWords");
+  if (savedLink) {
+    savedLink.style.display = savedWords.length ? "block" : "none";
+    const btn = savedLink.querySelector("button");
+    if (btn) {
+      btn.onclick = () => quizSavedWord(savedWords);
+    }
+  }
 
   if (!dailyWord || !dailyWordData) {
     wordEl.textContent = "—";
@@ -242,6 +421,11 @@ async function initQuiz() {
     quizStreak = correct ? quizStreak + 1 : 0;
     saveQuizStreak();
     streakEl.textContent = `Streak: ${quizStreak}`;
+    if (correct) {
+      chrome.storage.local.get("totalCorrect", ({ totalCorrect = 0 }) => {
+        chrome.storage.local.set({ totalCorrect: totalCorrect + 1 });
+      });
+    }
   };
 
   buttons.forEach((btn) => {
@@ -254,6 +438,17 @@ async function initQuiz() {
   }
   const hint = document.getElementById("quizShortcutHint");
   if (hint) hint.textContent = "Press 1–4 to select an answer.";
+}
+
+async function quizSavedWord(savedWords) {
+  if (!savedWords?.length) return;
+  const w = savedWords[Math.floor(Math.random() * savedWords.length)];
+  dailyWord = w;
+  dailyWordData = await fetchWordFromAPI(w);
+  if (!dailyWordData) {
+    dailyWordData = { word: w, meanings: [{ definitions: [{ definition: "Definition unavailable." }] }] };
+  }
+  initQuiz();
 }
 
 function quizKeyHandler(e) {
@@ -305,6 +500,9 @@ async function renderSavedList() {
 
   const exportBtn = document.getElementById("exportSaved");
   if (exportBtn) exportBtn.style.display = filtered.length ? "inline-flex" : "none";
+  const calendarBtn = document.getElementById("btnCalendar");
+  if (calendarBtn) calendarBtn.style.display = filtered.length ? "inline-flex" : "none";
+  renderStats();
 }
 
 async function showSavedWordDefinition(word) {
@@ -374,20 +572,42 @@ async function init() {
       dailyWordDate: dateKey,
       dailyWordData: dailyWordData || undefined,
     });
+    if (dailyWord && dailyWordData) {
+      addToWordHistory(dailyWord, dailyWordData);
+    }
   }
-
   renderWordPanel(dailyWordData);
   updateBookmarkButton();
   document.getElementById("btnBookmark").addEventListener("click", () => toggleSaved(dailyWord));
 
+  const fallbackRes = await fetch(chrome.runtime.getURL("example-fallbacks.json"));
+  try {
+    window.exampleFallbacks = await fallbackRes.json();
+  } catch {
+    window.exampleFallbacks = {};
+  }
+
   document.getElementById("searchSaved")?.addEventListener("input", renderSavedList);
   document.getElementById("exportSaved")?.addEventListener("click", exportSavedWords);
+  document.getElementById("btnCopy")?.addEventListener("click", copyWordAndDefinition);
+  document.getElementById("btnRandom")?.addEventListener("click", loadRandomWord);
+  document.getElementById("btnCalendar")?.addEventListener("click", addToCalendar);
   initTabs();
   await loadQuizStreak();
 
   chrome.storage.sync.get("theme", ({ theme = "light" }) => {
-    document.body.classList.toggle("theme-dark", theme === "dark");
+    const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.body.classList.toggle("theme-dark", dark);
   });
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      chrome.storage.sync.get("theme", ({ theme = "light" }) => {
+        if (theme === "system") {
+          document.body.classList.toggle("theme-dark", window.matchMedia("(prefers-color-scheme: dark)").matches);
+        }
+      });
+    });
+  }
 }
 
 init();

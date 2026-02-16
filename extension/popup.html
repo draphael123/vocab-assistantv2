@@ -19,9 +19,11 @@
       <span class="popup-date" id="dateLabel">—</span>
     </header>
     <div class="popup-tabs">
-      <button type="button" class="popup-tab active" data-tab="word">Today's Word</button>
+      <button type="button" class="popup-tab active" data-tab="word">Today</button>
       <button type="button" class="popup-tab" data-tab="quiz">Quiz</button>
       <button type="button" class="popup-tab" data-tab="saved">Saved</button>
+      <button type="button" class="popup-tab" data-tab="past">Past</button>
+      <button type="button" class="popup-tab" data-tab="search">Search</button>
     </div>
     <main class="popup-body">
       <div id="panel-word" class="panel active">
@@ -35,8 +37,13 @@
           </button>
         </div>
         <p class="phonetic" id="phonetic">—</p>
+        <div class="word-actions">
+          <button type="button" class="btn-copy" id="btnCopy" title="Copy word & definition">Copy</button>
+          <button type="button" class="btn-random" id="btnRandom" title="Random word">Shuffle</button>
+        </div>
         <div class="definitions" id="definitions"></div>
         <div class="audio-row" id="audioRow"></div>
+        <div class="synonyms-row" id="synonymsRow"></div>
         <div class="examples" id="examples"></div>
       </div>
       <div id="panel-quiz" class="panel">
@@ -44,12 +51,23 @@
         <div class="quiz-options" id="quizOptions"></div>
         <div class="quiz-feedback" id="quizFeedback"></div>
         <p class="quiz-streak" id="quizStreak">Streak: 0</p>
+        <p class="quiz-saved-link" id="quizSavedLink" style="display:none"><button type="button" class="btn-link">Or quiz a saved word</button></p>
         <p class="quiz-hint" id="quizShortcutHint">Press 1–4 to select an answer.</p>
       </div>
       <div id="panel-saved" class="panel">
+        <div class="stats-row" id="statsRow"></div>
         <input type="search" class="search-saved" id="searchSaved" placeholder="Search saved words…" />
         <button type="button" class="btn-export" id="exportSaved">Export saved words</button>
+        <button type="button" class="btn-calendar" id="btnCalendar">Add to calendar</button>
         <ul class="saved-list" id="savedList"></ul>
+      </div>
+      <div id="panel-past" class="panel">
+        <p class="panel-hint">Words from previous days</p>
+        <ul class="past-list" id="pastList"></ul>
+      </div>
+      <div id="panel-search" class="panel">
+        <input type="search" class="search-all" id="searchAll" placeholder="Search all words…" />
+        <ul class="search-results" id="searchResults"></ul>
       </div>
     </main>
   </div>

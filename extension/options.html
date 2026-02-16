@@ -46,12 +46,22 @@
 <body>
   <h1>Vocab Extender Settings</h1>
   <div class="field">
+    <label for="wordList">Word list</label>
+    <select id="wordList">
+      <option value="full">Full (400+ words)</option>
+      <option value="sat">SAT focus</option>
+      <option value="gre">GRE focus</option>
+    </select>
+    <p class="hint">Choose which word list to draw from.</p>
+  </div>
+  <div class="field">
     <label for="theme">Theme</label>
     <select id="theme">
       <option value="light">Light (cream/teal)</option>
       <option value="dark">Dark</option>
+      <option value="system">Match system</option>
     </select>
-    <p class="hint">Choose popup theme. Light matches the website.</p>
+    <p class="hint">Theme. "Match system" follows your OS light/dark setting.</p>
   </div>
   <div class="field">
     <label for="reminder">Daily reminder</label>

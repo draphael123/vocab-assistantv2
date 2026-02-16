@@ -1,10 +1,12 @@
 /**
  * Vocab Extender — Service worker (Manifest V3)
- * - Daily refresh at local midnight via chrome.alarms
- * - Badge: streak count or first letter of today's word
+ * - Daily refresh at local midnight
+ * - Badge: streak or first letter of today's word
+ * - Notification reminder at user-chosen time
  */
 
-const ALARM_NAME = "vocab-daily-refresh";
+const ALARM_REFRESH = "vocab-daily-refresh";
+const ALARM_REMINDER = "vocab-reminder";
 
 /** ms until next local midnight */
 function msUntilMidnight() {
@@ -14,28 +16,64 @@ function msUntilMidnight() {
   return midnight - now;
 }
 
-/** Schedule alarm for next midnight, then every 24h */
+/** Schedule daily refresh at midnight */
 function scheduleMidnightAlarm() {
-  chrome.alarms.clear(ALARM_NAME);
+  chrome.alarms.clear(ALARM_REFRESH);
   const delay = msUntilMidnight();
-  chrome.alarms.create(ALARM_NAME, {
+  chrome.alarms.create(ALARM_REFRESH, {
     when: Date.now() + delay,
+    periodInMinutes: 24 * 60,
+  });
+}
+
+/** Schedule reminder notification at hour (0-23). hour=9 = 9:00 AM */
+function scheduleReminder(hour) {
+  chrome.alarms.clear(ALARM_REMINDER);
+  if (hour === "off" || hour === null || hour === undefined) return;
+  const h = parseInt(hour, 10);
+  if (isNaN(h) || h < 0 || h > 23) return;
+  const now = new Date();
+  let target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+  chrome.alarms.create(ALARM_REMINDER, {
+    when: target.getTime(),
     periodInMinutes: 24 * 60,
   });
 }
 
 chrome.runtime.onInstalled.addListener(() => {
   scheduleMidnightAlarm();
+  chrome.storage.sync.get("reminder", ({ reminder }) => scheduleReminder(reminder));
 });
 
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM_NAME) {
-    chrome.storage.local.remove(["dailyWord", "dailyWordDate", "dailyWordData"]);
-    chrome.action.setBadgeText({ text: "" });
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && changes.reminder) {
+    scheduleReminder(changes.reminder.newValue);
+  }
+  if (area === "local" && (changes.quizStreak || changes.dailyWord)) {
+    updateBadge();
   }
 });
 
-/** Update badge with streak or first letter of today's word */
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === ALARM_REFRESH) {
+    await chrome.storage.local.remove(["dailyWord", "dailyWordDate", "dailyWordData"]);
+    chrome.action.setBadgeText({ text: "" });
+    scheduleMidnightAlarm();
+  }
+  if (alarm.name === ALARM_REMINDER) {
+    const { dailyWord } = await chrome.storage.local.get("dailyWord");
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("icons/icon48.png"),
+      title: "Vocab Extender",
+      message: dailyWord ? `Today's word: ${dailyWord}` : "Check out today's word!",
+    });
+    const { reminder } = await chrome.storage.sync.get("reminder");
+    scheduleReminder(reminder);
+  }
+});
+
 async function updateBadge() {
   try {
     const { quizStreak = 0, dailyWord } = await chrome.storage.local.get(["quizStreak", "dailyWord"]);
@@ -52,12 +90,5 @@ async function updateBadge() {
   } catch {}
 }
 
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && (changes.quizStreak || changes.dailyWord)) {
-    updateBadge();
-  }
-});
-
-// Initial badge on startup
 chrome.runtime.onStartup.addListener(updateBadge);
 updateBadge();

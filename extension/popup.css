@@ -93,7 +93,12 @@ body {
 .btn-bookmark:hover { background: rgba(30, 95, 116, 0.08); border-color: rgba(30, 95, 116, 0.2); }
 .btn-bookmark.saved { background: rgba(30, 95, 116, 0.12); border-color: rgba(30, 95, 116, 0.25); }
 
-.phonetic { font-size: 12px; color: var(--popup-muted); font-style: italic; margin-bottom: 12px; }
+.phonetic { font-size: 12px; color: var(--popup-muted); font-style: italic; margin-bottom: 8px; }
+.word-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+.btn-copy, .btn-random { padding: 4px 10px; font-size: 11px; background: var(--popup-surface); color: var(--popup-accent); border: 1px solid rgba(30,95,116,0.2); border-radius: 6px; cursor: pointer; font-family: inherit; }
+.btn-copy:hover, .btn-random:hover { background: rgba(30,95,116,0.08); }
+.synonyms-row { margin-bottom: 12px; font-size: 11px; color: var(--popup-dim); }
+.synonyms-row .syn-ant { display: block; margin-bottom: 4px; }
 .definitions { margin-bottom: 12px; }
 .def-item {
   padding: 8px 10px;
@@ -148,6 +153,23 @@ body {
   font-weight: 500;
 }
 .btn-export:hover { background: var(--popup-accent-dim); }
+.btn-calendar { display: none; padding: 6px 12px; margin-bottom: 10px; margin-left: 8px; font-size: 12px; background: var(--popup-surface); color: var(--popup-accent); border: 1px solid rgba(30,95,116,0.2); border-radius: 6px; cursor: pointer; font-family: inherit; }
+.btn-calendar:hover { background: rgba(30,95,116,0.08); }
+.stats-row { display: flex; gap: 12px; margin-bottom: 10px; font-size: 11px; color: var(--popup-muted); }
+.stats-row .stat { font-weight: 500; }
+.panel-hint { font-size: 12px; color: var(--popup-muted); margin-bottom: 10px; }
+.past-list { list-style: none; }
+.past-list li { padding: 8px 10px; margin-bottom: 4px; background: var(--popup-card); border-radius: 6px; border: 1px solid var(--popup-border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.past-date { font-size: 11px; color: var(--popup-muted); }
+.past-word { font-weight: 500; }
+.btn-view-past { padding: 4px 8px; font-size: 11px; background: var(--popup-accent); color: white; border: none; border-radius: 4px; cursor: pointer; }
+.search-all { width: 100%; padding: 8px 12px; margin-bottom: 10px; font-size: 12px; background: var(--popup-card); border: 1px solid var(--popup-border); border-radius: 8px; color: var(--popup-text); font-family: inherit; }
+.search-results { list-style: none; max-height: 400px; overflow-y: auto; }
+.search-results li { padding: 8px 10px; margin-bottom: 4px; background: var(--popup-card); border-radius: 6px; border: 1px solid var(--popup-border); display: flex; align-items: center; justify-content: space-between; }
+.btn-view-search { padding: 4px 8px; font-size: 11px; background: var(--popup-accent); color: white; border: none; border-radius: 4px; cursor: pointer; }
+.search-hint { font-size: 12px; color: var(--popup-muted); padding: 12px; }
+.quiz-saved-link { margin-top: 8px; }
+.btn-link { background: none; border: none; color: var(--popup-accent); font-size: 11px; cursor: pointer; text-decoration: underline; font-family: inherit; }
 
 .saved-list { list-style: none; }
 .saved-list li {

@@ -20,6 +20,7 @@ export function InstallInstructions() {
           <li>Open Chrome and go to <code className="px-1.5 py-0.5 rounded bg-stone-200/60 text-text-primary text-[12px] font-mono">chrome://extensions</code></li>
           <li>Turn on <strong className="text-text-primary">Developer mode</strong> (top right)</li>
           <li>Click <strong className="text-text-primary">Load unpacked</strong> and select the extracted folder</li>
+          <li>Pin the extension to your toolbar (puzzle icon → pin Vocab Extender)</li>
         </ol>
       )}
     </div>
