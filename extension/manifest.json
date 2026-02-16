@@ -17,7 +17,7 @@
     "service_worker": "background.js"
   },
   "permissions": ["storage", "alarms", "notifications"],
-  "host_permissions": ["https://api.dictionaryapi.dev/*"],
+  "host_permissions": ["https://api.dictionaryapi.dev/*", "https://vocab-assistantv2.vercel.app/*", "https://*.vercel.app/*"],
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },

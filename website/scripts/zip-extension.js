@@ -16,6 +16,12 @@ if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true });
 }
 
+// Write version.json from extension manifest
+const manifestPath = path.join(extensionDir, "manifest.json");
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const versionJson = path.join(publicDir, "version.json");
+fs.writeFileSync(versionJson, JSON.stringify({ version: manifest.version }, null, 2));
+
 if (!fs.existsSync(extensionDir)) {
   console.error("Extension folder not found at:", extensionDir);
   process.exit(1);

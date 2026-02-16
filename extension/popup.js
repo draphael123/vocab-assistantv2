@@ -12,6 +12,8 @@
 })();
 
 const API_BASE = "https://api.dictionaryapi.dev/api/v2/entries/en";
+const WEBSITE_BASE = "https://vocab-assistantv2.vercel.app";
+const EXT_VERSION = chrome.runtime.getManifest().version;
 let wordsList = [];
 let currentWordList = "full";
 let dailyWord = null;
@@ -220,6 +222,42 @@ function updateBookmarkButton() {
     btn.classList.toggle("saved", saved);
     btn.setAttribute("aria-label", saved ? "Remove from saved" : "Save word");
   });
+}
+
+// ── Update check ──
+async function checkForUpdate() {
+  const banner = document.getElementById("updateBanner");
+  const downloadLink = document.getElementById("updateDownload");
+  const dismissBtn = document.getElementById("updateDismiss");
+  if (!banner || !downloadLink) return;
+  const { updateDismissed } = await chrome.storage.local.get("updateDismissed");
+  try {
+    const res = await fetchWithTimeout(`${WEBSITE_BASE}/version.json`, 3000);
+    if (!res?.ok) return;
+    const { version } = await res.json();
+    if (!version) return;
+    if (compareVersions(version, EXT_VERSION) > 0 && updateDismissed !== version) {
+      downloadLink.href = `${WEBSITE_BASE}/vocab-extender.zip`;
+      downloadLink.download = "vocab-extender.zip";
+      banner.style.display = "flex";
+      dismissBtn?.addEventListener("click", () => {
+        banner.style.display = "none";
+        chrome.storage.local.set({ updateDismissed: version });
+      });
+    }
+  } catch {}
+}
+
+function compareVersions(a, b) {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const va = pa[i] || 0;
+    const vb = pb[i] || 0;
+    if (va > vb) return 1;
+    if (va < vb) return -1;
+  }
+  return 0;
 }
 
 // ── Tabs ──
@@ -738,6 +776,7 @@ async function init() {
   updateBookmarkButton();
   document.getElementById("btnBookmark").addEventListener("click", () => toggleSaved(dailyWord));
   document.getElementById("btnSettings")?.addEventListener("click", () => chrome.runtime.openOptionsPage());
+  checkForUpdate();
 
   try {
     const fallbackRes = await fetch(chrome.runtime.getURL("example-fallbacks.json"));
