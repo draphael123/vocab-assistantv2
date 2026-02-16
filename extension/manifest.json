@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Vocab Extender",
+  "version": "1.0.0",
+  "description": "Word of the Day — SAT & GRE vocabulary with definitions, pronunciation, quiz, and bookmarks.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "Vocab Extender — Today's Word"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "alarms"],
+  "host_permissions": ["https://api.dictionaryapi.dev/*"],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
