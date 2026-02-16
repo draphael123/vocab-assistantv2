@@ -25,12 +25,28 @@ function getDailyWordKey() {
   return getDayOfYear();
 }
 
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+  ]).catch(() => fallback);
+}
+
 async function loadWordsList() {
-  const { wordList = "full" } = await chrome.storage.sync.get("wordList");
+  let wordList = "full";
+  try {
+    const stored = await withTimeout(chrome.storage.sync.get("wordList"), 3000, {});
+    wordList = stored?.wordList || "full";
+  } catch {
+    wordList = "full";
+  }
   const file = wordList === "sat" ? "words-sat.json" : "words.json";
-  const res = await fetch(chrome.runtime.getURL(file));
-  const list = await res.json();
-  wordsList = Array.isArray(list) ? list : [];
+  const res = await withTimeout(
+    fetch(chrome.runtime.getURL(file)).then((r) => r.json()),
+    5000,
+    []
+  );
+  wordsList = Array.isArray(res) ? res : [];
   return wordsList;
 }
 
@@ -40,9 +56,16 @@ function getDailyWordFromList() {
   return wordsList[index];
 }
 
+function fetchWithTimeout(url, ms = 8000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal })
+    .finally(() => clearTimeout(timeout));
+}
+
 async function fetchWordFromAPI(word) {
   try {
-    const res = await fetch(`${API_BASE}/${encodeURIComponent(word)}`);
+    const res = await fetchWithTimeout(`${API_BASE}/${encodeURIComponent(word)}`);
     if (!res.ok) return null;
     const data = await res.json();
     return Array.isArray(data) ? data[0] : data;
@@ -498,7 +521,6 @@ async function renderSavedList() {
     });
   });
 
-  const exportBtn = document.getElementById("exportSaved");
   if (exportBtn) exportBtn.style.display = filtered.length ? "inline-flex" : "none";
   const calendarBtn = document.getElementById("btnCalendar");
   if (calendarBtn) calendarBtn.style.display = filtered.length ? "inline-flex" : "none";
@@ -554,8 +576,24 @@ function exportSavedWords() {
 async function init() {
   document.getElementById("dateLabel").textContent = formatDate();
 
-  await loadWordsList();
-  const cached = await chrome.storage.local.get(["dailyWord", "dailyWordDate", "dailyWordData"]);
+  let listLoaded = false;
+  try {
+    await loadWordsList();
+    listLoaded = wordsList.length > 0;
+  } catch (e) {
+    console.error("Failed to load words:", e);
+  }
+  if (!listLoaded) {
+    document.getElementById("wordTitle").textContent = "Could not load word list.";
+    document.getElementById("phonetic").textContent = "Check the extension and try again.";
+    return;
+  }
+
+  const cached = await withTimeout(
+    chrome.storage.local.get(["dailyWord", "dailyWordDate", "dailyWordData"]),
+    4000,
+    {}
+  );
   const dateKey = getDailyWordKey();
 
   if (cached.dailyWordDate === dateKey && cached.dailyWordData) {
@@ -563,6 +601,8 @@ async function init() {
     dailyWordData = cached.dailyWordData;
   } else {
     dailyWord = getDailyWordFromList();
+    document.getElementById("wordTitle").textContent = dailyWord || "—";
+    document.getElementById("phonetic").textContent = "Loading…";
     dailyWordData = dailyWord ? await fetchWordFromAPI(dailyWord) : null;
     if (!dailyWordData && dailyWord && cached.dailyWordDate === dateKey - 1 && cached.dailyWordData) {
       dailyWordData = cached.dailyWordData;
@@ -580,8 +620,8 @@ async function init() {
   updateBookmarkButton();
   document.getElementById("btnBookmark").addEventListener("click", () => toggleSaved(dailyWord));
 
-  const fallbackRes = await fetch(chrome.runtime.getURL("example-fallbacks.json"));
   try {
+    const fallbackRes = await fetch(chrome.runtime.getURL("example-fallbacks.json"));
     window.exampleFallbacks = await fallbackRes.json();
   } catch {
     window.exampleFallbacks = {};
@@ -610,4 +650,8 @@ async function init() {
   }
 }
 
-init();
+init().catch((err) => {
+  console.error("Vocab Extender init error:", err);
+  document.getElementById("wordTitle").textContent = "Something went wrong.";
+  document.getElementById("phonetic").textContent = "Try closing and reopening the extension.";
+});
