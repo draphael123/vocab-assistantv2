@@ -257,6 +257,7 @@ async function initQuiz() {
 }
 
 function quizKeyHandler(e) {
+  if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
   const panel = document.getElementById("panel-quiz");
   if (!panel?.classList.contains("active")) return;
   const idx = e.key === "1" ? 0 : e.key === "2" ? 1 : e.key === "3" ? 2 : e.key === "4" ? 3 : -1;
