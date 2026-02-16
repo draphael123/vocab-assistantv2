@@ -1,9 +1,10 @@
 /**
  * Vocab Extender — Popup script
- * - Load daily word (day-of-year % words.length) from words.json + Free Dictionary API
- * - Tabs: Today's Word, Quiz, Saved
- * - Bookmark/save words to chrome.storage.local
- * - Quiz: correct definition + 3 random distractors, streak in storage
+ * - Daily word from words.json + Free Dictionary API
+ * - Quiz with real distractors from other words; keyboard shortcuts
+ * - Saved words: view definitions, export, search
+ * - Theme aligned with website (cream/teal)
+ * - Offline fallback, loading/error states
  */
 
 const API_BASE = "https://api.dictionaryapi.dev/api/v2/entries/en";
@@ -21,8 +22,7 @@ function getDayOfYear() {
 }
 
 function getDailyWordKey() {
-  const doy = getDayOfYear();
-  return doy;
+  return getDayOfYear();
 }
 
 async function loadWordsList() {
@@ -34,11 +34,9 @@ async function loadWordsList() {
 }
 
 function getDailyWordFromList() {
-  const list = wordsList;
-  if (!list.length) return null;
-  const key = getDailyWordKey();
-  const index = key % list.length;
-  return list[index];
+  if (!wordsList.length) return null;
+  const index = getDailyWordKey() % wordsList.length;
+  return wordsList[index];
 }
 
 async function fetchWordFromAPI(word) {
@@ -52,6 +50,19 @@ async function fetchWordFromAPI(word) {
   }
 }
 
+/** Get definition string for word; uses cache first */
+async function getDefinitionForWord(word) {
+  const cache = (await chrome.storage.local.get("definitionCache")).definitionCache || {};
+  if (cache[word?.toLowerCase()]) return cache[word.toLowerCase()];
+  const apiEntry = await fetchWordFromAPI(word);
+  const def = apiEntry?.meanings?.[0]?.definitions?.[0]?.definition || null;
+  if (def && word) {
+    cache[word.toLowerCase()] = def;
+    await chrome.storage.local.set({ definitionCache: cache });
+  }
+  return def;
+}
+
 function formatDate() {
   return new Date().toLocaleDateString("en-US", {
     weekday: "short",
@@ -60,25 +71,42 @@ function formatDate() {
   });
 }
 
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function escapeAttr(s) {
+  return s ? String(s).replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
+}
+
 // ── Render Today's Word panel ──
 function renderWordPanel(apiEntry) {
+  const wordTitle = document.getElementById("wordTitle");
+  const wordTier = document.getElementById("wordTier");
+  const phonetic = document.getElementById("phonetic");
+  const definitions = document.getElementById("definitions");
+  const audioRow = document.getElementById("audioRow");
+  const examples = document.getElementById("examples");
+
   if (!apiEntry) {
-    document.getElementById("wordTitle").textContent = dailyWord || "—";
-    document.getElementById("wordTier").textContent = "offline";
-    document.getElementById("phonetic").textContent = "No definition available.";
-    document.getElementById("definitions").innerHTML = "";
-    document.getElementById("audioRow").innerHTML = "";
-    document.getElementById("examples").innerHTML = "";
+    wordTitle.textContent = dailyWord || "—";
+    wordTier.textContent = dailyWord ? "offline" : "—";
+    phonetic.textContent = "Check your connection and try again.";
+    definitions.innerHTML = "";
+    audioRow.innerHTML = "";
+    examples.innerHTML = "";
     return;
   }
 
   const word = apiEntry.word || dailyWord;
-  const phonetic = apiEntry.phonetic || apiEntry.phonetics?.find((p) => p.text)?.text || "—";
+  const phoneticText = apiEntry.phonetic || apiEntry.phonetics?.find((p) => p.text)?.text || "—";
   const meanings = apiEntry.meanings || [];
 
-  document.getElementById("wordTitle").textContent = word;
-  document.getElementById("wordTier").textContent = "advanced";
-  document.getElementById("phonetic").textContent = phonetic;
+  wordTitle.textContent = word;
+  wordTier.textContent = "advanced";
+  phonetic.textContent = phoneticText;
 
   let defHtml = "";
   meanings.slice(0, 3).forEach((m) => {
@@ -87,13 +115,12 @@ function renderWordPanel(apiEntry) {
       defHtml += `<div class="def-item"><div class="def-pos">${pos}</div><div class="def-text">${escapeHtml(d.definition)}</div></div>`;
     });
   });
-  document.getElementById("definitions").innerHTML = defHtml || "<div class='def-item'><div class='def-text'>No definitions found.</div></div>";
+  definitions.innerHTML = defHtml || "<div class='def-item'><div class='def-text'>No definitions found.</div></div>";
 
   const audioSrc = apiEntry.phonetics?.find((p) => p.audio)?.audio;
-  const audioHtml = audioSrc
+  audioRow.innerHTML = audioSrc
     ? `<button type="button" class="btn-audio" data-src="${escapeAttr(audioSrc)}">▶ Play pronunciation</button>`
     : "";
-  document.getElementById("audioRow").innerHTML = audioHtml;
   document.querySelectorAll(".btn-audio").forEach((btn) => {
     btn.addEventListener("click", () => {
       const a = new Audio(btn.dataset.src);
@@ -104,25 +131,10 @@ function renderWordPanel(apiEntry) {
   let exHtml = "";
   meanings.forEach((m) => {
     (m.definitions || []).forEach((d) => {
-      if (d.example) {
-        exHtml += `<div class="example">${escapeHtml(d.example)}</div>`;
-      }
+      if (d.example) exHtml += `<div class="example">${escapeHtml(d.example)}</div>`;
     });
   });
-  if (exHtml) {
-    document.getElementById("examples").innerHTML = `<div class="examples-label">Examples</div>${exHtml}`;
-  } else {
-    document.getElementById("examples").innerHTML = "";
-  }
-}
-
-function escapeHtml(s) {
-  const div = document.createElement("div");
-  div.textContent = s;
-  return div.innerHTML;
-}
-function escapeAttr(s) {
-  return s.replace(/"/g, "&quot;");
+  examples.innerHTML = exHtml ? `<div class="examples-label">Examples</div>${exHtml}` : "";
 }
 
 // ── Bookmark ──
@@ -164,7 +176,7 @@ function initTabs() {
   });
 }
 
-// ── Quiz ──
+// ── Quiz (real distractors, keyboard shortcuts) ──
 let quizStreak = 0;
 async function loadQuizStreak() {
   const { quizStreak: s = 0 } = await chrome.storage.local.get("quizStreak");
@@ -175,7 +187,7 @@ async function saveQuizStreak() {
   await chrome.storage.local.set({ quizStreak });
 }
 
-function initQuiz() {
+async function initQuiz() {
   const promptEl = document.getElementById("quizPrompt");
   const wordEl = document.getElementById("quizWord");
   const optionsEl = document.getElementById("quizOptions");
@@ -184,15 +196,29 @@ function initQuiz() {
 
   if (!dailyWord || !dailyWordData) {
     wordEl.textContent = "—";
-    optionsEl.innerHTML = "<p>Load today's word first.</p>";
+    optionsEl.innerHTML = "<p class='quiz-loading'>Load today's word first.</p>";
     return;
   }
 
   const correctDef = dailyWordData?.meanings?.[0]?.definitions?.[0]?.definition || "No definition.";
-  const others = wordsList.filter((w) => w !== dailyWord);
+  const others = wordsList.filter((w) => w.toLowerCase() !== dailyWord.toLowerCase());
   const shuffle = (arr) => arr.slice().sort(() => Math.random() - 0.5);
-  const three = shuffle(others).slice(0, 3);
-  const options = shuffle([correctDef, ...three.map(() => "Definition for another word.")]);
+  const threeWords = shuffle(others).slice(0, 3);
+
+  optionsEl.innerHTML = "<p class='quiz-loading'>Loading quiz…</p>";
+  const distractorDefs = [];
+  for (const w of threeWords) {
+    const d = await getDefinitionForWord(w);
+    if (d && d !== correctDef && !distractorDefs.includes(d)) distractorDefs.push(d);
+  }
+  let attempts = 0;
+  while (distractorDefs.length < 3 && others.length > 0 && attempts < 20) {
+    const fallback = others[Math.floor(Math.random() * others.length)];
+    const d = await getDefinitionForWord(fallback);
+    if (d && d !== correctDef && !distractorDefs.includes(d)) distractorDefs.push(d);
+    attempts++;
+  }
+  const options = shuffle([correctDef, ...distractorDefs.slice(0, 3)]);
 
   wordEl.textContent = dailyWord;
   feedbackEl.textContent = "";
@@ -202,50 +228,126 @@ function initQuiz() {
   optionsEl.innerHTML = options
     .map(
       (text, i) =>
-        `<button type="button" class="quiz-option" data-correct="${text === correctDef}">${escapeHtml(text)}</button>`
+        `<button type="button" class="quiz-option" data-index="${i}" data-correct="${text === correctDef}">${i + 1}. ${escapeHtml(text)}</button>`
     )
     .join("");
 
-  optionsEl.querySelectorAll(".quiz-option").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (feedbackEl.textContent) return;
-      const correct = btn.dataset.correct === "true";
-      btn.classList.add(correct ? "correct" : "incorrect");
-      feedbackEl.textContent = correct ? "Correct!" : "Incorrect.";
-      feedbackEl.className = "quiz-feedback " + (correct ? "correct" : "incorrect");
-      if (correct) {
-        quizStreak += 1;
-        saveQuizStreak();
-      } else {
-        quizStreak = 0;
-        saveQuizStreak();
-      }
-      streakEl.textContent = `Streak: ${quizStreak}`;
-    });
+  const buttons = optionsEl.querySelectorAll(".quiz-option");
+  const selectOption = (btn) => {
+    if (feedbackEl.textContent) return;
+    const correct = btn.dataset.correct === "true";
+    btn.classList.add(correct ? "correct" : "incorrect");
+    feedbackEl.textContent = correct ? "Correct!" : "Incorrect.";
+    feedbackEl.className = "quiz-feedback " + (correct ? "correct" : "incorrect");
+    quizStreak = correct ? quizStreak + 1 : 0;
+    saveQuizStreak();
+    streakEl.textContent = `Streak: ${quizStreak}`;
+  };
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => selectOption(btn));
   });
+
+  if (!document._quizKeyHandlerAttached) {
+    document.addEventListener("keydown", quizKeyHandler);
+    document._quizKeyHandlerAttached = true;
+  }
+  const hint = document.getElementById("quizShortcutHint");
+  if (hint) hint.textContent = "Press 1–4 to select an answer.";
 }
 
-// ── Saved list ──
+function quizKeyHandler(e) {
+  const panel = document.getElementById("panel-quiz");
+  if (!panel?.classList.contains("active")) return;
+  const idx = e.key === "1" ? 0 : e.key === "2" ? 1 : e.key === "3" ? 2 : e.key === "4" ? 3 : -1;
+  if (idx >= 0) {
+    const btn = document.querySelector(`#quizOptions .quiz-option[data-index="${idx}"]`);
+    if (btn && !document.getElementById("quizFeedback").textContent) {
+      e.preventDefault();
+      btn.click();
+    }
+  }
+}
+
+// ── Saved list: view definitions, export ──
 async function renderSavedList() {
   const { savedWords = [] } = await chrome.storage.local.get("savedWords");
   const query = (document.getElementById("searchSaved")?.value || "").toLowerCase();
   const filtered = query ? savedWords.filter((w) => w.includes(query)) : savedWords;
-
   const listEl = document.getElementById("savedList");
+  const exportBtn = document.getElementById("exportSaved");
+
   listEl.innerHTML = filtered
     .map(
       (w) =>
-        `<li><span>${escapeHtml(w)}</span><button type="button" data-word="${escapeAttr(w)}" title="Remove">✕</button></li>`
+        `<li data-word="${escapeAttr(w)}"><span class="saved-word">${escapeHtml(w)}</span><span class="saved-actions"><button type="button" class="btn-view" data-word="${escapeAttr(w)}" title="View definition">View</button><button type="button" class="btn-remove" data-word="${escapeAttr(w)}" title="Remove">✕</button></span></li>`
     )
     .join("");
 
-  listEl.querySelectorAll("button").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+  listEl.querySelectorAll(".btn-remove").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
       const w = btn.dataset.word;
       const { savedWords: list = [] } = await chrome.storage.local.get("savedWords");
       await chrome.storage.local.set({ savedWords: list.filter((x) => x !== w) });
       renderSavedList();
     });
+  });
+
+  listEl.querySelectorAll(".btn-view").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const w = btn.dataset.word;
+      showSavedWordDefinition(w);
+    });
+  });
+
+  const exportBtn = document.getElementById("exportSaved");
+  if (exportBtn) exportBtn.style.display = filtered.length ? "inline-flex" : "none";
+}
+
+async function showSavedWordDefinition(word) {
+  const modal = document.getElementById("savedWordModal");
+  const content = document.getElementById("savedWordContent");
+  const closeBtn = document.getElementById("savedWordClose");
+  if (!modal || !content) return;
+  modal.classList.add("active");
+  content.innerHTML = "<p class='modal-loading'>Loading…</p>";
+  const apiEntry = await fetchWordFromAPI(word);
+  if (!apiEntry) {
+    content.innerHTML = "<p class='modal-error'>Could not load definition. Check your connection.</p>";
+  } else {
+    const w = apiEntry.word || word;
+    const phonetic = apiEntry.phonetic || apiEntry.phonetics?.find((p) => p.text)?.text || "—";
+    const meanings = apiEntry.meanings || [];
+    let defHtml = "";
+    meanings.slice(0, 3).forEach((m) => {
+      const pos = m.partOfSpeech || "";
+      (m.definitions || []).slice(0, 2).forEach((d) => {
+        defHtml += `<div class="def-item"><div class="def-pos">${pos}</div><div class="def-text">${escapeHtml(d.definition)}</div></div>`;
+      });
+    });
+    const audioSrc = apiEntry.phonetics?.find((p) => p.audio)?.audio;
+    const audioHtml = audioSrc ? `<button type="button" class="btn-audio modal-audio" data-src="${escapeAttr(audioSrc)}">▶ Play</button>` : "";
+    content.innerHTML = `<h2 class="modal-word">${escapeHtml(w)}</h2><p class="phonetic">${escapeHtml(phonetic)}</p>${audioHtml}<div class="definitions">${defHtml || "<p>No definitions.</p>"}</div>`;
+    content.querySelectorAll(".btn-audio").forEach((btn) => {
+      btn.addEventListener("click", () => new Audio(btn.dataset.src).play());
+    });
+  }
+  closeBtn.onclick = () => modal.classList.remove("active");
+  modal.onclick = (e) => { if (e.target === modal) modal.classList.remove("active"); };
+}
+
+function exportSavedWords() {
+  chrome.storage.local.get("savedWords", ({ savedWords = [] }) => {
+    const text = savedWords.join("\n");
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "vocab-extender-saved-words.txt";
+    a.click();
+    URL.revokeObjectURL(url);
   });
 }
 
@@ -256,12 +358,16 @@ async function init() {
   await loadWordsList();
   const cached = await chrome.storage.local.get(["dailyWord", "dailyWordDate", "dailyWordData"]);
   const dateKey = getDailyWordKey();
+
   if (cached.dailyWordDate === dateKey && cached.dailyWordData) {
     dailyWord = cached.dailyWord;
     dailyWordData = cached.dailyWordData;
   } else {
     dailyWord = getDailyWordFromList();
     dailyWordData = dailyWord ? await fetchWordFromAPI(dailyWord) : null;
+    if (!dailyWordData && dailyWord && cached.dailyWordDate === dateKey - 1 && cached.dailyWordData) {
+      dailyWordData = cached.dailyWordData;
+    }
     await chrome.storage.local.set({
       dailyWord,
       dailyWordDate: dateKey,
@@ -271,13 +377,16 @@ async function init() {
 
   renderWordPanel(dailyWordData);
   updateBookmarkButton();
-  document.getElementById("btnBookmark").addEventListener("click", () => {
-    toggleSaved(dailyWord);
-  });
+  document.getElementById("btnBookmark").addEventListener("click", () => toggleSaved(dailyWord));
 
   document.getElementById("searchSaved")?.addEventListener("input", renderSavedList);
+  document.getElementById("exportSaved")?.addEventListener("click", exportSavedWords);
   initTabs();
-  loadQuizStreak();
+  await loadQuizStreak();
+
+  chrome.storage.sync.get("theme", ({ theme = "light" }) => {
+    document.body.classList.toggle("theme-dark", theme === "dark");
+  });
 }
 
 init();

@@ -9,23 +9,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Design system: Vocab Extender
-        page: "#08080F",
-        raised: "#0F0F1A",
-        card: "#151525",
-        "card-hover": "#1A1A2E",
-        surface: "#252540",
-        accent: "#F59E0B",
-        "accent-dim": "#D97706",
-        "text-primary": "#F9FAFB",
-        "text-dim": "#9CA3AF",
-        "text-muted": "#6B7280",
-        success: "#10B981",
-        error: "#EF4444",
+        page: "#FAF8F6",
+        raised: "#F2EEE8",
+        card: "#FFFFFF",
+        "card-hover": "#FBF9F7",
+        surface: "#E8E4DD",
+        accent: "#1E5F74",
+        "accent-dim": "#164D5E",
+        "text-primary": "#1A1714",
+        "text-dim": "#4A4540",
+        "text-muted": "#6B6560",
+        success: "#047857",
+        error: "#B91C1C",
       },
       fontFamily: {
-        display: ["var(--font-instrument-serif)", "serif"],
-        sans: ["var(--font-satoshi)", "system-ui", "sans-serif"],
+        display: ["var(--font-fraunces)", "Georgia", "serif"],
+        serif: ["var(--font-source-serif)", "Georgia", "serif"],
       },
       backgroundImage: {
         "grain-overlay":

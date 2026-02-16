@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
+import { Fraunces, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
-const instrumentSerif = Instrument_Serif({
-  weight: ["400"],
+const fraunces = Fraunces({
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
   subsets: ["latin"],
-  variable: "--font-instrument-serif",
+  variable: "--font-fraunces",
   display: "swap",
 });
 
-// Plus Jakarta Sans is a close stand-in for Satoshi (geometric sans). Replace with local Satoshi if you have the files.
-const satoshi = Plus_Jakarta_Sans({
-  weight: ["400", "500", "600", "700", "800"],
+const sourceSerif = Source_Serif_4({
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
-  variable: "--font-satoshi",
+  variable: "--font-source-serif",
   display: "swap",
 });
 
@@ -36,12 +35,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${satoshi.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${sourceSerif.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-page text-text-primary font-sans antialiased">
+      <body className="min-h-screen bg-page text-text-primary font-serif antialiased">
         {children}
       </body>
     </html>

@@ -36,7 +36,7 @@ export function WordTicker() {
         {words.map((word, i) => (
           <span
             key={`${word}-${i}`}
-            className="flex-shrink-0 py-2.5 px-5 bg-card border border-white/5 rounded-full font-display text-base text-text-dim whitespace-nowrap transition-all duration-300 cursor-default hover:border-amber-500/20 hover:text-accent hover:bg-accent/10"
+            className="flex-shrink-0 py-2 px-4 bg-card border border-stone-200 rounded font-display text-[15px] text-text-dim whitespace-nowrap transition-colors duration-200 cursor-default hover:text-accent hover:border-accent/40"
           >
             {word}
           </span>

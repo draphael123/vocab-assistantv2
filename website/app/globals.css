@@ -3,21 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --bg: #08080F;
-  --bg-raised: #0F0F1A;
-  --bg-card: #151525;
-  --bg-card-hover: #1A1A2E;
-  --surface: #252540;
-  --accent: #F59E0B;
-  --accent-dim: #D97706;
-  --accent-glow: rgba(245, 158, 11, 0.08);
-  --accent-glow-strong: rgba(245, 158, 11, 0.2);
-  --text: #F9FAFB;
-  --text-dim: #9CA3AF;
-  --text-muted: #6B7280;
-  --border: rgba(255, 255, 255, 0.05);
-  --success: #10B981;
-  --error: #EF4444;
+  --bg: #FAF8F6;
+  --bg-raised: #F2EEE8;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FBF9F7;
+  --surface: #E8E4DD;
+  --accent: #1E5F74;
+  --accent-dim: #164D5E;
+  --accent-glow: rgba(30, 95, 116, 0.08);
+  --accent-glow-strong: rgba(30, 95, 116, 0.15);
+  --text: #1A1714;
+  --text-dim: #4A4540;
+  --text-muted: #6B6560;
+  --border: rgba(26, 23, 20, 0.1);
+  --success: #047857;
+  --error: #B91C1C;
 }
 
 html {
@@ -27,28 +27,28 @@ html {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-satoshi), system-ui, sans-serif;
-  line-height: 1.6;
+  font-family: var(--font-source-serif), Georgia, serif;
+  line-height: 1.65;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Grain overlay */
+/* Subtle paper texture */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E");
   background-repeat: repeat;
   pointer-events: none;
   z-index: 9999;
 }
 
-/* Scroll reveal */
+/* Scroll reveal - subtle */
 .reveal {
   opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
+  transform: translateY(12px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 .reveal.visible {
   opacity: 1;

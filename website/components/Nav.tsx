@@ -1,22 +1,22 @@
 import Link from "next/link";
-
-const chromeStoreUrl = "#"; // Replace with your Chrome Web Store link when published
+import { EXTENSION_DOWNLOAD_URL } from "@/lib/constants";
 
 export function Nav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[100] py-4 backdrop-blur-[20px] bg-page/80 border-b border-white/5">
+    <nav className="fixed top-0 left-0 right-0 z-[100] py-4 bg-page/95 border-b border-stone-200/60">
       <div className="max-w-[1100px] mx-auto px-6 flex items-center justify-between">
-        <Link href="#" className="flex items-center gap-2.5 no-underline">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-dim flex items-center justify-center font-display text-xl text-page font-normal">
+        <Link href="/" className="flex items-center gap-2.5 no-underline">
+          <div className="w-8 h-8 rounded bg-accent flex items-center justify-center font-display text-lg text-white font-medium">
             V
           </div>
           <span className="font-extrabold text-base text-text-primary tracking-tight">
             Vocab Extender
           </span>
         </Link>
-        <Link
-          href={chromeStoreUrl}
-          className="inline-flex items-center gap-2 py-2.5 px-5 bg-accent text-page font-bold text-[13px] rounded-lg border-0 cursor-pointer no-underline transition-all duration-200 hover:bg-accent-dim hover:-translate-y-0.5"
+        <a
+          href={EXTENSION_DOWNLOAD_URL}
+          download="vocab-extender.zip"
+          className="inline-flex items-center gap-1.5 py-2 px-4 bg-accent text-white font-medium text-[13px] rounded cursor-pointer no-underline transition-colors duration-200 hover:bg-accent-dim"
         >
           <svg
             width="16"
@@ -30,8 +30,8 @@ export function Nav() {
           >
             <polyline points="6 9 12 15 18 9" />
           </svg>
-          Add to Chrome
-        </Link>
+          Download Extension
+        </a>
       </div>
     </nav>
   );

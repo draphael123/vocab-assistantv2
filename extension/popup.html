@@ -6,7 +6,7 @@
   <title>Vocab Extender</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -44,12 +44,21 @@
         <div class="quiz-options" id="quizOptions"></div>
         <div class="quiz-feedback" id="quizFeedback"></div>
         <p class="quiz-streak" id="quizStreak">Streak: 0</p>
+        <p class="quiz-hint" id="quizShortcutHint">Press 1–4 to select an answer.</p>
       </div>
       <div id="panel-saved" class="panel">
         <input type="search" class="search-saved" id="searchSaved" placeholder="Search saved words…" />
+        <button type="button" class="btn-export" id="exportSaved">Export saved words</button>
         <ul class="saved-list" id="savedList"></ul>
       </div>
     </main>
+  </div>
+  <div id="savedWordModal" class="modal" role="dialog" aria-labelledby="savedWordTitle" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="savedWordClose" aria-label="Close">✕</button>
+      <div id="savedWordContent"></div>
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>

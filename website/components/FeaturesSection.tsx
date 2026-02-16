@@ -85,27 +85,24 @@ const FEATURES = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-20 px-6">
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent mb-3 text-center">
-          Features
-        </p>
-        <h2 className="font-display text-[clamp(32px,4vw,44px)] font-normal leading-tight tracking-tight text-center mb-14">
-          Everything you need to
-          <br />
-          <em className="italic text-accent">master new words</em>
+    <section id="features" className="py-16 px-6 bg-raised/50">
+      <div className="max-w-[900px] mx-auto">
+        <h2 className="font-display text-[clamp(28px,3.5vw,36px)] font-semibold tracking-tight text-text-primary mb-10">
+          Daily word, pronunciation, quiz, bookmarks.
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[400px] sm:max-w-none mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
           {FEATURES.map((f) => (
             <Reveal key={f.title}>
-              <div className="p-7 pt-6 bg-card border border-white/5 rounded-[14px] transition-all duration-300 ease-out hover:border-amber-500/10 hover:bg-card-hover hover:-translate-y-1">
-                <div className="w-11 h-11 rounded-[10px] bg-accent/10 border border-amber-500/10 flex items-center justify-center text-accent mb-4">
+              <div className="flex gap-4 p-5 bg-card rounded border border-stone-200/80 transition-colors hover:border-accent/20">
+                <div className="shrink-0 w-10 h-10 rounded flex items-center justify-center text-accent bg-accent/5">
                   {f.icon}
                 </div>
-                <h3 className="text-base font-bold mb-2 tracking-tight">{f.title}</h3>
-                <p className="text-[13.5px] text-text-dim leading-[1.6]">
-                  {f.description}
-                </p>
+                <div>
+                  <h3 className="font-semibold text-[15px] mb-1">{f.title}</h3>
+                  <p className="text-[14px] text-text-dim leading-[1.55]">
+                    {f.description}
+                  </p>
+                </div>
               </div>
             </Reveal>
           ))}
