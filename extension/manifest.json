@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Vocab Extender",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Word of the Day — SAT & GRE vocabulary with definitions, pronunciation, quiz, and bookmarks.",
   "action": {
     "default_popup": "popup.html",

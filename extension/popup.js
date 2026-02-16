@@ -6,6 +6,10 @@
  * - Theme aligned with website (cream/teal)
  * - Offline fallback, loading/error states
  */
+(function () {
+  const t = document.getElementById("wordTitle");
+  if (t) t.textContent = "…";
+})();
 
 const API_BASE = "https://api.dictionaryapi.dev/api/v2/entries/en";
 let wordsList = [];
@@ -32,6 +36,8 @@ function withTimeout(promise, ms, fallback) {
   ]).catch(() => fallback);
 }
 
+const FALLBACK_WORDS = ["ephemeral", "serendipity", "ubiquitous", "eloquent", "resilient", "pragmatic", "meticulous", "juxtapose", "magnanimous", "sanguine", "alacrity", "aberration", "vociferous", "ameliorate", "assiduous"];
+
 async function loadWordsList() {
   let wordList = "full";
   try {
@@ -41,12 +47,16 @@ async function loadWordsList() {
     wordList = "full";
   }
   const file = wordList === "sat" ? "words-sat.json" : "words.json";
-  const res = await withTimeout(
-    fetch(chrome.runtime.getURL(file)).then((r) => r.json()),
-    5000,
-    []
-  );
-  wordsList = Array.isArray(res) ? res : [];
+  try {
+    const res = await withTimeout(
+      fetch(chrome.runtime.getURL(file)).then((r) => r.json()),
+      5000,
+      []
+    );
+    wordsList = Array.isArray(res) && res.length > 0 ? res : FALLBACK_WORDS;
+  } catch {
+    wordsList = FALLBACK_WORDS;
+  }
   return wordsList;
 }
 
@@ -574,6 +584,9 @@ function exportSavedWords() {
 
 // ── Init ──
 async function init() {
+  const wordTitleEl = document.getElementById("wordTitle");
+  const phoneticEl = document.getElementById("phonetic");
+
   document.getElementById("dateLabel").textContent = formatDate();
 
   let listLoaded = false;
@@ -584,10 +597,20 @@ async function init() {
     console.error("Failed to load words:", e);
   }
   if (!listLoaded) {
-    document.getElementById("wordTitle").textContent = "Could not load word list.";
-    document.getElementById("phonetic").textContent = "Check the extension and try again.";
+    wordTitleEl.textContent = "Could not load word list.";
+    phoneticEl.textContent = "Check the extension and try again.";
     return;
   }
+
+  dailyWord = getDailyWordFromList();
+  wordTitleEl.textContent = dailyWord || "—";
+  phoneticEl.textContent = "Loading…";
+
+  const stuckTimer = setTimeout(() => {
+    if (phoneticEl.textContent === "Loading…") {
+      phoneticEl.textContent = "Still loading… Check your connection.";
+    }
+  }, 10000);
 
   const cached = await withTimeout(
     chrome.storage.local.get(["dailyWord", "dailyWordDate", "dailyWordData"]),
@@ -600,9 +623,6 @@ async function init() {
     dailyWord = cached.dailyWord;
     dailyWordData = cached.dailyWordData;
   } else {
-    dailyWord = getDailyWordFromList();
-    document.getElementById("wordTitle").textContent = dailyWord || "—";
-    document.getElementById("phonetic").textContent = "Loading…";
     dailyWordData = dailyWord ? await fetchWordFromAPI(dailyWord) : null;
     if (!dailyWordData && dailyWord && cached.dailyWordDate === dateKey - 1 && cached.dailyWordData) {
       dailyWordData = cached.dailyWordData;
@@ -616,6 +636,7 @@ async function init() {
       addToWordHistory(dailyWord, dailyWordData);
     }
   }
+  clearTimeout(stuckTimer);
   renderWordPanel(dailyWordData);
   updateBookmarkButton();
   document.getElementById("btnBookmark").addEventListener("click", () => toggleSaved(dailyWord));
